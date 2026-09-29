@@ -12,7 +12,7 @@ You can install this bundle in TextMate by opening the preferences and going to 
 
 With the [kaffeinated-dev fork of TextMate](https://github.com/kaffeinated-dev/textmate) (2.0.23+kaffeinated.5 or later), Ruby and ERB files in a project with a `Gemfile` (or `gems.rb`) get [ruby-lsp](https://shopify.github.io/ruby-lsp/) as their language server:
 
-* Syntax errors and warnings, and RuboCop offenses when the project’s bundle has RuboCop, are shown in the gutter as you type. Click a mark to read it, or press F3 to go to the next one.
+* Syntax errors and warnings, and RuboCop offenses when the project’s bundle has RuboCop (see below), are shown in the gutter as you type. Click a mark to read it, or press F3 to go to the next one.
 * ⎋ completion suggests what ruby-lsp does first, such as the methods and constants of your project and its gems.
 * The [Language Server bundle](https://github.com/kaffeinated-dev/language-server.tmbundle) has commands that ask ruby-lsp: Complete (⌥⎋, instead of this bundle’s rcodetools completion), Documentation Tooltip (⌃⌥H), Go to Definition (⌃⌘J), Find References (⇧⌃⌘F), Go to Symbol in Project (⌥⌘T), Quick Fix (⌥↩, including Extract Variable and Extract Method for the selection), and Rename Symbol (⌃⌘E).
 * In Rails applications, ruby-lsp adds [ruby-lsp-rails](https://github.com/Shopify/ruby-lsp-rails), which knows the models’ columns, associations, and routes. It starts the application in the background to ask.
@@ -25,6 +25,23 @@ Set these in Preferences → Variables or a `.tm_properties` file:
 * `TM_DISABLE_LANGUAGE_SERVER`: turns language servers off.
 
 If nothing happens, the server’s messages are in the log: `log stream --predicate 'subsystem == "com.macromates.TextMate" && category == "LanguageServer"'`.
+
+# RuboCop
+
+In projects whose bundle has [RuboCop](https://rubocop.org) (in the `Gemfile`, directly or through a gem such as `rubocop-rails-omakase`), ruby-lsp uses it with the project’s `.rubocop.yml`:
+
+* Its offenses are shown in the gutter as you type.
+* Quick Fix (⌥↩, from the Language Server bundle) corrects the offense on the caret’s line (such as “Autocorrect Style/StringLiterals”), or disables its cop for that line.
+* Format Document (⌃⇧H) makes the corrections RuboCop can make safely, as `rubocop --autocorrect` does. They are made in the document, and can be undone; with TextMate 2.0.23+kaffeinated.8 or later, only the lines that change are replaced, so the caret and bookmarks stay where they are.
+* Documents are formatted like this when saved (Format on Save), once ruby-lsp has started.
+
+Without ruby-lsp (also while it starts), or in projects whose bundle doesn’t have RuboCop, Format Document runs RuboCop itself: with Bundler when the bundle has it, otherwise the `rubocop` installed for the project’s Ruby (through mise, when installed). In Rails files, ⌃⇧H is the Ruby on Rails bundle’s Create Partial From Selection unless ruby-lsp is running; Format Document is also in the Bundles menu.
+
+Set these in Preferences → Variables or a `.tm_properties` file:
+
+* `TM_RUBY_FORMAT_ON_SAVE = false`: stops formatting documents when they are saved.
+* `TM_RUBOCOP`: the command to run RuboCop with, when ruby-lsp doesn’t format, such as `bin/rubocop`.
+* `TM_RUBOCOP_OPTIONS`: options added to that command, such as `--only Layout`.
 
 # License
 
