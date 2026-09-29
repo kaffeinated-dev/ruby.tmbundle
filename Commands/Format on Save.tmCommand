@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>beforeRunningCommand</key>
+	<string>nop</string>
+	<key>command</key>
+	<string>#!/bin/bash
+. "$TM_BUNDLE_SUPPORT/lib/rubocop.sh"
+
+# Formats with RuboCop through ruby-lsp, the language server, in projects whose
+# bundle has RuboCop, unless TM_RUBY_FORMAT_ON_SAVE is set to false.
+ruby_enabled "${TM_RUBY_FORMAT_ON_SAVE:-true}" || exit 200
+ruby_format_with_language_server
+exit 200
+</string>
+	<key>input</key>
+	<string>none</string>
+	<key>inputFormat</key>
+	<string>text</string>
+	<key>name</key>
+	<string>Format on Save</string>
+	<key>outputCaret</key>
+	<string>afterOutput</string>
+	<key>outputFormat</key>
+	<string>text</string>
+	<key>outputLocation</key>
+	<string>discard</string>
+	<key>require</key>
+	<array>
+		<dict>
+			<key>name</key>
+			<string>Language Server</string>
+			<key>uuid</key>
+			<string>2B7B90FA-78B7-4922-98C7-C025E4F932B4</string>
+		</dict>
+	</array>
+	<key>scope</key>
+	<string>source.ruby attr.language-server - text</string>
+	<key>semanticClass</key>
+	<string>callback.document.will-save</string>
+	<key>uuid</key>
+	<string>5A5DDAD9-4B5C-4560-87A2-13C7384BF1C0</string>
+	<key>version</key>
+	<integer>2</integer>
+</dict>
+</plist>

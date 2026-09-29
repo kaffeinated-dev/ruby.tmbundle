@@ -1,0 +1,22 @@
+name: Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+    - name: Test the RuboCop commands
+      run: |
+        bash -n Support/lib/rubocop.sh
+        ruby Support/test/test_rubocop.rb
