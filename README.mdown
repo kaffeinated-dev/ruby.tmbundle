@@ -8,6 +8,23 @@ You can install this bundle in TextMate by opening the preferences and going to 
 * [Commit Styleguide](http://kb.textmate.org/commit_styleguide) — _before you send a pull request_
 * [Writing Bug Reports](http://kb.textmate.org/writing_bug_reports) — _before you report an issue_
 
+# Language server
+
+With the [kaffeinated-dev fork of TextMate](https://github.com/kaffeinated-dev/textmate) (2.0.23+kaffeinated.5 or later), Ruby and ERB files in a project with a `Gemfile` (or `gems.rb`) get [ruby-lsp](https://shopify.github.io/ruby-lsp/) as their language server:
+
+* Syntax errors and warnings, and RuboCop offenses when the project’s bundle has RuboCop, are shown in the gutter as you type. Click a mark to read it, or press F3 to go to the next one.
+* ⎋ completion suggests what ruby-lsp does first, such as the methods and constants of your project and its gems.
+* In Rails applications, ruby-lsp adds [ruby-lsp-rails](https://github.com/Shopify/ruby-lsp-rails), which knows the models’ columns, associations, and routes. It starts the application in the background to ask.
+
+ruby-lsp runs in the outermost folder with a `Gemfile` (so a gem inside an application uses the application’s), with the project’s Ruby through [mise](https://mise.jdx.dev) when it is installed, otherwise from the `PATH` in Preferences → Variables. It needs to be installed for each Ruby version: `gem install ruby-lsp` (with mise, add `ruby-lsp` to `~/.default-gems` to have it installed with new versions). It sets up a bundle of its own in the project’s `.ruby-lsp` folder, which git ignores, and may run `bundle install` there.
+
+Set these in Preferences → Variables or a `.tm_properties` file:
+
+* `TM_RUBY_LANGUAGE_SERVER`: another command to start a language server with, such as `bundle exec ruby-lsp`.
+* `TM_DISABLE_LANGUAGE_SERVER`: turns language servers off.
+
+If nothing happens, the server’s messages are in the log: `log stream --predicate 'subsystem == "com.macromates.TextMate" && category == "LanguageServer"'`.
+
 # License
 
 If not otherwise specified (see below), files in this repository fall under the following license:

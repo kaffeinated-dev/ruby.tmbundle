@@ -1,0 +1,32 @@
+#!/bin/bash
+# Starts ruby-lsp, the Ruby language server, for TextMate (in the project’s
+# folder): with the Ruby set for the project by mise, when installed, else
+# from the PATH. TM_RUBY_LANGUAGE_SERVER can be another command that starts a
+# language server using standard input and output.
+
+if [[ -n "${TM_RUBY_LANGUAGE_SERVER:-}" ]]; then
+	eval "exec $TM_RUBY_LANGUAGE_SERVER"
+fi
+
+# Not for the folder of an installed gem (opened to read its source), where
+# ruby-lsp would set up and install a bundle.
+case "$PWD/" in
+	*/lib/ruby/gems/*|*/vendor/bundle/*|"$HOME"/.gem/*)
+		echo "Not starting ruby-lsp for the installed gem in $PWD." >&2
+		exit 1
+		;;
+esac
+
+for mise in "${TM_MISE:-}" "$(command -v mise)" "$HOME/.local/bin/mise" /opt/homebrew/bin/mise /usr/local/bin/mise; do
+	[[ -n "$mise" && -x "$mise" ]] && break
+	mise=
+done
+
+if [[ -n "$mise" ]] && "$mise" which ruby-lsp >/dev/null 2>&1; then
+	exec "$mise" exec -- ruby-lsp
+elif command -v ruby-lsp >/dev/null; then
+	exec ruby-lsp
+fi
+
+echo "ruby-lsp was not found for the Ruby of $PWD. Install it with “gem install ruby-lsp” (https://shopify.github.io/ruby-lsp/), or set TM_RUBY_LANGUAGE_SERVER to the command of a language server." >&2
+exit 1
