@@ -12,11 +12,12 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # As TextMate runs commands: with macOS's bash, and osascript to apply edits.
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v7
-    - name: Test the RuboCop commands
+    - name: Test the format commands
       run: |
-        bash -n Support/lib/rubocop.sh
-        ruby Support/test/test_rubocop.rb
+        bash -n Support/lib/format.sh
+        ruby Support/test/test_format.rb

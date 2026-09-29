@@ -35,13 +35,25 @@ In projects whose bundle has [RuboCop](https://rubocop.org) (in the `Gemfile`, d
 * Format Document (⌃⇧H) makes the corrections RuboCop can make safely, as `rubocop --autocorrect` does. They are made in the document, and can be undone; with TextMate 2.0.23+kaffeinated.8 or later, only the lines that change are replaced, so the caret and bookmarks stay where they are.
 * Documents are formatted like this when saved (Format on Save), once ruby-lsp has started.
 
-Without ruby-lsp (also while it starts), or in projects whose bundle doesn’t have RuboCop, Format Document runs RuboCop itself: with Bundler when the bundle has it, otherwise the `rubocop` installed for the project’s Ruby (through mise, when installed). In Rails views, ⌃⇧H is the Ruby on Rails bundle’s Create Partial From Selection.
+Without ruby-lsp (also while it starts), or in projects whose bundle doesn’t have RuboCop, Format Document runs RuboCop itself: with Bundler when the bundle has it, otherwise the `rubocop` installed for the project’s Ruby (through mise, when installed). Its changes are made the same way. In Rails views, ⌃⇧H is the Ruby on Rails bundle’s Create Partial From Selection.
 
 Set these in Preferences → Variables or a `.tm_properties` file:
 
 * `TM_RUBY_FORMAT_ON_SAVE = false`: stops formatting documents when they are saved.
 * `TM_RUBOCOP`: the command to run RuboCop with, when ruby-lsp doesn’t format, such as `bin/rubocop`.
 * `TM_RUBOCOP_OPTIONS`: options added to that command, such as `--only Layout`.
+
+# ERB
+
+HTML views (`.html.erb`, and variants such as `.html+phone.erb`) are indented with [htmlbeautifier](https://github.com/threedaymonk/htmlbeautifier) when saved (Format ERB on Save). It uses the document’s tab settings, and keeps one blank line between blocks rather than none. It only changes indentation and blank lines. Views with a closing tag that has no opening tag are saved as they are, and a tool tip says where. Only the lines that change are replaced, so with TextMate 2.0.23+kaffeinated.9 or later the caret and bookmarks stay on their lines.
+
+htmlbeautifier is used with Bundler when the project’s bundle has it, otherwise as installed for the project’s Ruby (through mise, when installed). Install it with `gem install htmlbeautifier` for each Ruby version (with mise, add it to `~/.default-gems`). Without it, views are saved as they are.
+
+Set these in Preferences → Variables or a `.tm_properties` file:
+
+* `TM_ERB_FORMAT_ON_SAVE = false`: stops indenting views when they are saved.
+* `TM_HTMLBEAUTIFIER`: the command to run htmlbeautifier with.
+* `TM_HTMLBEAUTIFIER_OPTIONS`: options added to that command, such as `--keep-blank-lines 2`.
 
 # License
 

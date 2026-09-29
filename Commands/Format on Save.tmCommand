@@ -6,7 +6,7 @@
 	<string>nop</string>
 	<key>command</key>
 	<string>#!/bin/bash
-. "$TM_BUNDLE_SUPPORT/lib/rubocop.sh"
+. "$TM_BUNDLE_SUPPORT/lib/format.sh"
 
 # Formats with RuboCop through ruby-lsp, the language server, in projects whose
 # bundle has RuboCop, unless TM_RUBY_FORMAT_ON_SAVE is set to false.

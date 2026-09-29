@@ -8,37 +8,29 @@
 	<string>#!/bin/bash
 . "$TM_BUNDLE_SUPPORT/lib/format.sh"
 
-# Formats with RuboCop through ruby-lsp, the language server, in projects whose
-# bundle has RuboCop (the edits are made in place), or else by running it.
-ruby_format_document
+# Indents HTML views (.html.erb) with htmlbeautifier, when it is installed,
+# unless TM_ERB_FORMAT_ON_SAVE is set to false.
+ruby_enabled "${TM_ERB_FORMAT_ON_SAVE:-true}" || exit 200
+ruby_erb_format
 </string>
 	<key>input</key>
 	<string>document</string>
 	<key>inputFormat</key>
 	<string>text</string>
-	<key>keyEquivalent</key>
-	<string>^H</string>
 	<key>name</key>
-	<string>Format Document</string>
+	<string>Format ERB on Save</string>
 	<key>outputCaret</key>
 	<string>interpolateByLine</string>
 	<key>outputFormat</key>
 	<string>text</string>
 	<key>outputLocation</key>
 	<string>discard</string>
-	<key>require</key>
-	<array>
-		<dict>
-			<key>name</key>
-			<string>Language Server</string>
-			<key>uuid</key>
-			<string>2B7B90FA-78B7-4922-98C7-C025E4F932B4</string>
-		</dict>
-	</array>
 	<key>scope</key>
-	<string>source.ruby - text, source.ruby attr.language-server - text</string>
+	<string>text.html.erb</string>
+	<key>semanticClass</key>
+	<string>callback.document.will-save</string>
 	<key>uuid</key>
-	<string>64BB4EE2-2803-410C-B140-EA545A13F250</string>
+	<string>F1CE3CC8-F7B8-4B2A-AE0D-30D8F9D4370C</string>
 	<key>version</key>
 	<integer>2</integer>
 </dict>
