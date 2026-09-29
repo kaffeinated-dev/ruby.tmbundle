@@ -6,14 +6,17 @@ require 'tmpdir'
 
 Encoding.default_external = Encoding::UTF_8
 
-# Runs Format Document and Format on Save (bash) as TextMate does, with a
-# fake Language Server bundle (its bin/format exits as the test says), and a
-# fake mise, Bundler, and RuboCop that log their arguments.
-class TestRuboCop < Minitest::Test
+# Runs Format Document and the Format on Save commands (bash) as TextMate
+# does, with a fake Language Server bundle (its bin/format exits as the test
+# says), and a fake mise, Bundler, RuboCop, htmlbeautifier, and mate that log
+# their arguments.
+class TestFormat < Minitest::Test
   BUNDLE = File.expand_path('../..', __dir__)
 
   MESSY = "def  hi( x )\n  puts \"hi \#{x}\"\nend\n"
   FORMATTED = "def hi(x)\n  puts \"hi \#{x}\"\nend\n"
+  VIEW = "<ul>\n<% @posts.each do |post| %>\n<li><%= post.title %></li>\n<% end %>\n</ul>\n"
+  INDENTED = "<ul>\n  <% @posts.each do |post| %>\n    <li><%= post.title %></li>\n  <% end %>\n</ul>\n"
 
   def self.command(name)
     plist = File.read(File.join(BUNDLE, 'Commands', "#{name}.tmCommand"), encoding: 'UTF-8')
@@ -25,9 +28,10 @@ class TestRuboCop < Minitest::Test
     @project = File.join(@dir, 'project')
     @bin = File.join(@dir, 'bin')
     @tmp = File.join(@dir, 'tmp')
-    FileUtils.mkdir_p([File.join(@project, 'lib'), @bin, @tmp])
+    FileUtils.mkdir_p([File.join(@project, 'lib'), File.join(@project, 'app/views/posts'), @bin, @tmp])
     File.write(File.join(@project, 'Gemfile'), "source 'https://rubygems.org'\n")
     File.write(File.join(@project, 'lib/hi.rb'), MESSY)
+    File.write(File.join(@project, 'app/views/posts/index.html.erb'), VIEW)
 
     @language_server = File.join(@dir, 'Language Server/Support')
     FileUtils.mkdir_p(File.join(@language_server, 'bin'))
@@ -38,6 +42,7 @@ class TestRuboCop < Minitest::Test
       exec "$@"
     BASH
     rubocop(output: FORMATTED)
+    htmlbeautifier(output: INDENTED)
   end
 
   def teardown
@@ -64,6 +69,28 @@ class TestRuboCop < Minitest::Test
     fake('bundle', '[[ "$1" == exec ]] && shift; exec "$@"')
   end
 
+  # A fake htmlbeautifier, as the fake RuboCop.
+  def htmlbeautifier(output:, errors: '', status: 0)
+    fake('htmlbeautifier', <<~BASH)
+      cat > /dev/null
+      #{output.empty? ? '' : "cat <<'HTML'\n#{output}HTML"}
+      #{errors.empty? ? '' : "cat >&2 <<'ERRORS'\n#{errors}ERRORS"}
+      exit #{status}
+    BASH
+  end
+
+  # A fake mate, whose answer to mate --lsp workspace/applyEdit is RESULT.
+  def mate(result: '{"result":{"applied":true}}')
+    fake('mate', "printf '%s' '#{result}'")
+    File.join(@bin, 'mate')
+  end
+
+  # The params of the edit applied with the fake mate.
+  def applied_edit
+    require 'json'
+    JSON.parse(log[/^mate \(\w+\): --lsp workspace\/applyEdit --lsp-params (.*)$/, 1])
+  end
+
   def fake(name, script)
     path = File.join(@bin, name)
     File.write(path, "#!/bin/bash\nprintf '%s\\n' \"#{name} ($(basename \"$PWD\")): $*\" >> '#{@dir}/log'\n#{script}\n")
@@ -74,8 +101,12 @@ class TestRuboCop < Minitest::Test
     File.exist?(File.join(@dir, 'log')) ? File.read(File.join(@dir, 'log')) : ''
   end
 
+  # Runs the command as TextMate does: its script as a file.
   def run_command(name, file: 'lib/hi.rb', env: {})
     path = File.expand_path(file, @project)
+    script = File.join(@dir, 'command')
+    File.write(script, self.class.command(name))
+    File.chmod(0o755, script)
     environment = {
       'PATH' => "#{@bin}:/usr/bin:/bin:/usr/sbin:/sbin",
       'HOME' => @dir,
@@ -86,7 +117,7 @@ class TestRuboCop < Minitest::Test
       'TM_FILEPATH' => path,
       'TM_DIRECTORY' => File.dirname(path),
     }.merge(env).compact
-    output, errors, status = Open3.capture3(environment, '/bin/bash', '-c', self.class.command(name), stdin_data: File.read(path), unsetenv_others: true)
+    output, errors, status = Open3.capture3(environment, script, stdin_data: File.read(path), unsetenv_others: true)
     { status: status.exitstatus, output: output, errors: errors }
   end
 
@@ -107,7 +138,7 @@ class TestRuboCop < Minitest::Test
 
   def test_rubocop_formats_without_a_language_server_that_formats
     assert_equal({ status: 202, output: FORMATTED, errors: '' }, run_command('Format Document', env: { 'TM_RUBOCOP_OPTIONS' => '--only Layout' }))
-    assert_equal "format\nmise (project): exec -- rubocop --autocorrect --editor-mode --stdin #{@project}/lib/hi.rb --stderr --format emacs --force-exclusion --only Layout\nrubocop (project): --autocorrect --editor-mode --stdin #{@project}/lib/hi.rb --stderr --format emacs --force-exclusion --only Layout\n", log
+    assert_equal "format\nmise (project): which rubocop\nmise (project): exec -- rubocop --autocorrect --editor-mode --stdin #{@project}/lib/hi.rb --stderr --format emacs --force-exclusion --only Layout\nrubocop (project): --autocorrect --editor-mode --stdin #{@project}/lib/hi.rb --stderr --format emacs --force-exclusion --only Layout\n", log
 
     # Nor without the Language Server bundle.
     assert_equal 202, run_command('Format Document', env: { 'TM_LANGUAGE_SERVER_BUNDLE_SUPPORT' => nil })[:status]
@@ -174,5 +205,70 @@ class TestRuboCop < Minitest::Test
 
     format_with_language_server(status: 206, errors: 'The language server did not respond in time.')
     assert_equal 206, run_command('Format on Save')[:status]
+  end
+
+  def test_rubocop_changes_are_applied_by_textmate
+    skip 'needs osascript' unless File.executable?('/usr/bin/osascript')
+    assert_equal({ status: 200, output: '', errors: '' }, run_command('Format Document', env: { 'TM_MATE' => mate }))
+    edit = applied_edit['edit']['changes']["file://#{@project}/lib/hi.rb"]
+    assert_equal [{ 'range' => { 'start' => { 'line' => 0, 'character' => 0 }, 'end' => { 'line' => 2147483647, 'character' => 0 } }, 'newText' => FORMATTED }], edit
+
+    # Replacing the document, when TextMate can't.
+    assert_equal({ status: 202, output: FORMATTED, errors: '' }, run_command('Format Document', env: { 'TM_MATE' => mate(result: '{"result":{"applied":false}}') }))
+  end
+
+  def test_views_are_indented_on_save
+    result = run_command('Format ERB on Save', file: 'app/views/posts/index.html.erb', env: { 'TM_TAB_SIZE' => '2', 'TM_SOFT_TABS' => 'YES', 'TM_HTMLBEAUTIFIER_OPTIONS' => '--keep-blank-lines 2' })
+    assert_equal({ status: 202, output: INDENTED, errors: '' }, result)
+    assert_includes log, 'htmlbeautifier (project): --tab-stops 2 --keep-blank-lines 1 --stop-on-errors --keep-blank-lines 2'
+
+    run_command('Format ERB on Save', file: 'app/views/posts/index.html.erb', env: { 'TM_SOFT_TABS' => 'NO' })
+    assert_includes log, 'htmlbeautifier (project): --tab --keep-blank-lines 1 --stop-on-errors'
+  end
+
+  def test_view_changes_are_applied_by_textmate
+    skip 'needs osascript' unless File.executable?('/usr/bin/osascript')
+    result = run_command('Format ERB on Save', file: 'app/views/posts/index.html.erb', env: { 'TM_MATE' => mate })
+    assert_equal({ status: 200, output: '', errors: '' }, result)
+    assert_equal INDENTED, applied_edit['edit']['changes']["file://#{@project}/app/views/posts/index.html.erb"][0]['newText']
+  end
+
+  def test_only_html_views_are_indented
+    FileUtils.mkdir_p(File.join(@project, 'app/views/mailer'))
+    File.write(File.join(@project, 'app/views/mailer/welcome.text.erb'), VIEW)
+    assert_equal({ status: 200, output: '', errors: '' }, run_command('Format ERB on Save', file: 'app/views/mailer/welcome.text.erb'))
+
+    File.write(File.join(@project, 'app/views/posts/index.html+phone.erb'), VIEW)
+    assert_equal 202, run_command('Format ERB on Save', file: 'app/views/posts/index.html+phone.erb')[:status]
+  end
+
+  def test_views_are_left_when_turned_off_or_formatted
+    assert_equal 200, run_command('Format ERB on Save', file: 'app/views/posts/index.html.erb', env: { 'TM_ERB_FORMAT_ON_SAVE' => 'false' })[:status]
+    refute_includes log, 'htmlbeautifier'
+
+    htmlbeautifier(output: VIEW)
+    assert_equal({ status: 200, output: '', errors: '' }, run_command('Format ERB on Save', file: 'app/views/posts/index.html.erb'))
+  end
+
+  def test_views_are_left_without_htmlbeautifier
+    result = run_command('Format ERB on Save', file: 'app/views/posts/index.html.erb', env: { 'TM_MISE' => nil, 'PATH' => '/usr/bin:/bin' })
+    assert_equal({ status: 200, output: '', errors: '' }, result)
+
+    # With mise, for a Ruby without it.
+    fake('mise', '[[ "$1" == which ]] && exit 1; [[ "$1 $2" == "exec --" ]] && shift 2; exec "$@"')
+    result = run_command('Format ERB on Save', file: 'app/views/posts/index.html.erb', env: { 'PATH' => '/usr/bin:/bin' })
+    assert_equal({ status: 200, output: '', errors: '' }, result)
+  end
+
+  def test_htmlbeautifier_of_the_bundle_is_used
+    File.write(File.join(@project, 'Gemfile.lock'), "GEM\n  specs:\n    htmlbeautifier (1.4.3)\n")
+    assert_equal 202, run_command('Format ERB on Save', file: 'app/views/posts/index.html.erb')[:status]
+    assert_includes log, 'bundle (project): exec htmlbeautifier --tab-stops'
+  end
+
+  def test_views_with_invalid_nesting_are_left
+    htmlbeautifier(output: '', status: 1, errors: "/gems/htmlbeautifier-1.4.3/bin/htmlbeautifier:12:in 'Object#beautify': Error parsing standard input: Extraneous closing tag on line 3 (RuntimeError)\n\tfrom /gems/htmlbeautifier-1.4.3/bin/htmlbeautifier:111:in '<top (required)>'\n")
+    result = run_command('Format ERB on Save', file: 'app/views/posts/index.html.erb')
+    assert_equal({ status: 206, output: '', errors: 'Not indented: Extraneous closing tag on line 3' }, result)
   end
 end
