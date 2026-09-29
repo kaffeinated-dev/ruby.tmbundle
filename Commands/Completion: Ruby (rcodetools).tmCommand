@@ -65,7 +65,7 @@ print selected.sub(/\A#{Regexp.escape(ENV['TM_CURRENT_WORD'].to_s)}/, "")
 	<key>output</key>
 	<string>afterSelectedText</string>
 	<key>scope</key>
-	<string>source.ruby</string>
+	<string>source.ruby - attr.language-server</string>
 	<key>uuid</key>
 	<string>47D203ED-EB9B-4653-A07B-A897800CEB76</string>
 </dict>

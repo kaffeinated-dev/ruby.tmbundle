@@ -14,6 +14,7 @@ With the [kaffeinated-dev fork of TextMate](https://github.com/kaffeinated-dev/t
 
 * Syntax errors and warnings, and RuboCop offenses when the project’s bundle has RuboCop, are shown in the gutter as you type. Click a mark to read it, or press F3 to go to the next one.
 * ⎋ completion suggests what ruby-lsp does first, such as the methods and constants of your project and its gems.
+* The [Language Server bundle](https://github.com/kaffeinated-dev/language-server.tmbundle) has commands that ask ruby-lsp: Complete (⌥⎋, instead of this bundle’s rcodetools completion), Documentation Tooltip (⌃⌥H), Go to Definition (⌃⌘J), Find References (⇧⌃⌘F), Go to Symbol in Project (⌥⌘T), Quick Fix (⌥↩, including Extract Variable and Extract Method for the selection), and Rename Symbol (⌃⌘E).
 * In Rails applications, ruby-lsp adds [ruby-lsp-rails](https://github.com/Shopify/ruby-lsp-rails), which knows the models’ columns, associations, and routes. It starts the application in the background to ask.
 
 ruby-lsp runs in the outermost folder with a `Gemfile` (so a gem inside an application uses the application’s), with the project’s Ruby through [mise](https://mise.jdx.dev) when it is installed, otherwise from the `PATH` in Preferences → Variables. It needs to be installed for each Ruby version: `gem install ruby-lsp` (with mise, add `ruby-lsp` to `~/.default-gems` to have it installed with new versions). It sets up a bundle of its own in the project’s `.ruby-lsp` folder, which git ignores, and may run `bundle install` there.
