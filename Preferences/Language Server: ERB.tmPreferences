@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>name</key>
+	<string>Language Server: ERB</string>
+	<key>scope</key>
+	<string>text.html.erb</string>
+	<key>settings</key>
+	<dict>
+		<key>languageServer</key>
+		<dict>
+			<key>command</key>
+			<string>"$TM_BUNDLE_SUPPORT/bin/language-server"</string>
+			<key>languageId</key>
+			<string>erb</string>
+			<key>preferOuterRoot</key>
+			<true/>
+			<key>rootFiles</key>
+			<array>
+				<string>Gemfile</string>
+				<string>gems.rb</string>
+			</array>
+		</dict>
+	</dict>
+	<key>uuid</key>
+	<string>8B120812-BE8D-49A5-A51F-A6AEF2DBBF9D</string>
+</dict>
+</plist>
